@@ -29,6 +29,8 @@ const App2 = () => {
     "pieces"
   );
   const [isListView, setIsListView] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
 
   const facility = "Rosta Gärde";
   const kiosk = "Kiosk 1";
@@ -200,10 +202,11 @@ const App2 = () => {
   };
 
   const toggleListView = () => {
-    if (!isListView) setIsListView(true);
-    else {
-      setIsListView(false);
-    }
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setIsListView((prev) => !prev);
+      setIsTransitioning(false);
+    }, 300);
   };
 
   if (isLoading || !editedProducts.length) {
@@ -227,7 +230,14 @@ const App2 = () => {
 
   return (
     <>
-      <Toaster />
+      <Toaster /><div className="relative h-screen">
+      <div
+      className={`${
+        isListView ? "opacity-0 pointer-events-none" : "opacity-100"
+      } transition-opacity duration-100 absolute inset-0 ${
+        isTransitioning ? "z-10" : ""
+      }`}
+    >
       {!isListView && (
         <div className="grid grid-rows-[auto__1fr_auto_2fr] h-screen container mx-auto p-4">
           <div>
@@ -356,7 +366,7 @@ const App2 = () => {
             <Keypad onKeyPressed={handleKeypadPress} />
             <Button
               type="button"
-              className="w-16 h-16 shadow border m-1 p-1 rounded-full absolute right-0 bottom-2"
+              className="w-16 h-16 shadow border m-1 p-1 rounded-full absolute -right-2 bottom-2"
               variant={"outline"}
               onClick={() => {
                 toggleListView();
@@ -367,6 +377,14 @@ const App2 = () => {
           </div>
         </div>
       )}
+      </div>
+      <div
+      className={`${
+        isListView ? "opacity-100" : "opacity-0 pointer-events-none"
+      } transition-opacity duration-100 absolute inset-0 ${
+        isTransitioning ? "z-10" : ""
+      }`}
+    >
       {isListView && (
         <div className="container mx-auto p-3 ">
           <div className="rounded-xl border border-black border-solid text-black aspect-video relative">
@@ -394,6 +412,7 @@ const App2 = () => {
                 <label className="text-sm font-semibold">Antal i styck</label>
                 <Input
                   value={product.amountPieces}
+                  
                   onChange={(e) =>
                     setEditedProducts((prev) =>
                       prev.map((p, i) =>
@@ -411,6 +430,7 @@ const App2 = () => {
                 </label>
                 <Input
                   value={product.amountPackages}
+                  
                   onChange={(e) =>
                     setEditedProducts((prev) =>
                       prev.map((p, i) =>
@@ -425,14 +445,17 @@ const App2 = () => {
             </div>
           </div>
         ))}
-        <Button type="submit" className="mt-5">
+        <div className="mx-auto w-fit">
+        <Button type="submit" className={`mt-5 mx-auto ${!isValid ? "bg-gray-500" : ""}`} disabled={!isValid}>
           Skicka in inventering
         </Button>
+        </div>
       </form>
             <Button
               type="button"
-              className="w-16 h-16 shadow border m-1 p-1 rounded-full sticky right-0 bottom-2"
+              className={`w-16 h-16 shadow border m-1 p-1 rounded-full fixed right-3 bottom-3 `}
               variant={"outline"}
+             
               onClick={() => {
                 toggleListView();
               }}
@@ -442,6 +465,8 @@ const App2 = () => {
           </div>
         </div>
       )}
+      </div>
+      </div>
     </>
   );
 };
