@@ -7,20 +7,19 @@ import { toast } from "./hooks/use-toast";
 import { Toaster } from "./components/ui/toaster";
 import { ArrowBigLeft, ArrowBigRight, LayoutList } from "lucide-react";
 import { InventoryDialog } from "./components/InventoryDialog";
-import fetchWithAuth from "./functions/fetchWithAuth";
 
 type KioskInventory = {
   id: string;
-  kioskName: string; 
+  kioskName: string;
   inventoryDate: string;
-  products: Products[];
+  products: Product[];
 };
 
-interface Products {
+interface Product {
   id: string;
   productName: string;
-  amountPieces: string | number;
-  amountPackages: string | number;
+  amountPieces: number;
+  amountPackages: number;
 }
 
 const App2 = () => {
@@ -28,7 +27,7 @@ const App2 = () => {
   const [keypadTarget, setKeypadTarget] = useState<"pieces" | "packages">(
     "pieces"
   );
-  const [editedProducts, setEditedProducts] = useState<Products[]>([]);
+  const [editedProducts, setEditedProducts] = useState<Product[]>([]);
   const [activeInput, setActiveInput] = useState<"pieces" | "packages" | null>(
     "pieces"
   );
@@ -39,25 +38,37 @@ const App2 = () => {
   const kiosk = "Kiosk 1";
   const inventoryDate = "2025-06-13 14:25";
 
-
-  const { data, isLoading, error } = useQuery<Products[]>({
+  const { data, isLoading, error } = useQuery<Product[]>({
     queryKey: ["inventoryList"],
     queryFn: async () => {
-      const response = await fetch(`facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d`);
+      const response = await fetch(`https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/6a81c35e-ff89-4520-9bb8-b743352fb8d3/kiosks/39c135a2-cdce-47b7-856e-3e5772568712/inventories`, { 
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response) {
+        throw new Error("Failed to fetch products");
+      }
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }
-      const data: KioskInventory = await response.json();
-      return data.products;
+      const dataResponse: KioskInventory = await response.json();
+      return dataResponse.products;
     },
   });
+
+  // useEffect(() => {
+  //   if (data) {
+  //     const initialProducts = data.map((item) => item.products);
+  //     setEditedProducts(initialProducts);
+  //   }
+  // }, [data]);
 
   useEffect(() => {
     if (data) {
       const updatedProducts = data.map((product) => ({
         ...product,
-        amountPieces: "",
-        amountPackages: "",
       }));
       setEditedProducts(updatedProducts);
       console.log("Updated editedProducts:", updatedProducts);
@@ -65,9 +76,10 @@ const App2 = () => {
   }, [data]);
 
   //valideringsflagga
-  const isValid = editedProducts.every(
-    (product) => product.amountPieces !== "" && product.amountPackages !== ""
-  );
+  const isValid = editedProducts?.every(item =>
+    item.amountPieces !== undefined && item.amountPackages !== undefined
+    )
+
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault(); // Förhindra formulärets standardomladdning
@@ -82,11 +94,14 @@ const App2 = () => {
     }
 
     try {
-      const response = await fetchWithAuth(`facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d/inventories`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ products: editedProducts }),
-      });
+      const response = await fetch(
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d/inventories`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ products: editedProducts }),
+        }
+      );
 
       if (!response) {
         toast({
@@ -111,13 +126,13 @@ const App2 = () => {
       });
 
       //återställer alla fält
-      setEditedProducts((prevProducts) =>
-        prevProducts.map((product) => ({
-          ...product,
-          amountPieces: "",
-          amountPackages: "",
-        }))
-      );
+      // setEditedProducts((prevProducts) =>
+      //   prevProducts.map((product) => ({
+      //     ...product,
+      //     amountPieces: undefined,
+      //     amountPackages: undefined,
+      //   }))
+      // );
     } catch (error) {
       console.error("Update failed:", error);
       toast({
@@ -147,38 +162,23 @@ const App2 = () => {
   };
 
   const updateCurrentProduct = (
-    field: "pieces" | "packages",
-    newValue: string | ((prev: string) => string)
-  ) => {
-    const parseValue = (value: string) => {
-      const parsedValue = parseInt(value, 10);
-      return isNaN(parsedValue) ? "" : parsedValue;
-    };
-
-    setEditedProducts((prevProducts) =>
-      prevProducts.map((product, index) =>
-        index === currentProductIndex
-          ? {
-              ...product,
-              [field === "pieces" ? "amountPieces" : "amountPackages"]:
-                typeof newValue === "function"
-                  ? parseValue(
-                      newValue(
-                        String(
-                          product[
-                            field === "pieces"
-                              ? "amountPieces"
-                              : "amountPackages"
-                          ]
-                        )
-                      )
-                    )
-                  : parseValue(newValue),
-            }
-          : product
-      )
-    );
-  };
+  field: "pieces" | "packages",
+  newValue: string | ((prev: string) => string)
+) => {
+  setEditedProducts(prevProducts =>
+    prevProducts.map((product, index) =>
+      index === currentProductIndex
+        ? {
+            ...product,
+            [field === "pieces" ? "amountPieces" : "amountPackages"]:
+              typeof newValue === "function"
+                ? parseInt(newValue(String(product[field === "pieces" ? "amountPieces" : "amountPackages"])) || "", 10)
+                : parseInt(newValue, 10),
+          }
+        : product
+    )
+  );
+};
 
   const goToNextFieldOrProduct = () => {
     if (keypadTarget === "pieces") {
@@ -228,9 +228,16 @@ const App2 = () => {
     return <div>Error: {String(error)}</div>;
   }
 
-  const currentProduct = data?.[currentProductIndex];
-  const currentEditedProduct = editedProducts[currentProductIndex];
+  // const currentProduct = data?.map(
+  //   (item) => item.products[currentProductIndex]
+  // );
+
+  const currentProduct = editedProducts[currentProductIndex];
+const currentAmountPieces = currentProduct?.amountPieces;
+const currentAmountPackages = currentProduct?.amountPackages;
+  
   console.log(editedProducts);
+  
   if (!currentProduct) {
     return <div>No products available.</div>;
   }
@@ -241,7 +248,11 @@ const App2 = () => {
 
   return (
     <>
-    <InventoryDialog facility={facility} kiosk={kiosk} inventoryDate={inventoryDate}/>
+      <InventoryDialog
+        facility={facility}
+        kiosk={kiosk}
+        inventoryDate={inventoryDate}
+      />
       <Toaster />
       <div className="relative h-[90vh]">
         <div
@@ -274,7 +285,7 @@ const App2 = () => {
                         isValid ? "bg-green-200" : "bg-neutral-200"
                       } rounded-full p-2`}
                     >
-                      {currentProductIndex + 1}/{editedProducts.length}
+                      {currentProductIndex + 1}/{data?.length}
                     </span>
                   </div>
 
@@ -285,7 +296,7 @@ const App2 = () => {
                         <p className="text-xs font-semibold">Antal i styck</p>
 
                         <Input
-                          value={currentEditedProduct.amountPieces}
+                          value={currentAmountPieces}
                           onFocus={() => {
                             handleFocus("pieces");
                             setKeypadTarget("pieces");
@@ -315,7 +326,7 @@ const App2 = () => {
                         </p>
 
                         <Input
-                          value={currentEditedProduct.amountPackages}
+                          value={currentAmountPackages}
                           onFocus={() => {
                             handleFocus("packages");
                             setKeypadTarget("packages");
@@ -390,7 +401,6 @@ const App2 = () => {
               </div>
               <div className="flex relative">
                 <Keypad onKeyPressed={handleKeypadPress} />
-              
               </div>
             </div>
           )}
@@ -416,7 +426,7 @@ const App2 = () => {
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                  {editedProducts.map((product, index) => (
+                  {editedProducts?.map((product, index) => (
                     <div
                       key={product.id}
                       className={`space-y-4 lg:flex ${
@@ -433,18 +443,18 @@ const App2 = () => {
                           <label className="text-sm font-semibold">
                             Antal i styck
                           </label>
-                          <Input 
-                          type="number"
+                          <Input
+                            type="number"
                             value={product.amountPieces}
-                            onChange={(e) =>
-                              setEditedProducts((prev) =>
-                                prev.map((p, i) =>
-                                  i === index
-                                    ? { ...p, amountPieces: e.target.value }
-                                    : p
-                                )
-                              )
-                            }
+                            // onChange={(e) =>
+                            //   setEditedProducts((prev) =>
+                            //     prev.map((p, i) =>
+                            //       i === index
+                            //         ? { ...p, amountPieces: e.target.value }
+                            //         : p
+                            //     )
+                            //   )
+                            // }
                           />
                         </div>
                         <div className="flex flex-col">
@@ -452,17 +462,17 @@ const App2 = () => {
                             Antal i förpackning
                           </label>
                           <Input
-                           type="number"
+                            type="number"
                             value={product.amountPackages}
-                            onChange={(e) =>
-                              setEditedProducts((prev) =>
-                                prev.map((p, i) =>
-                                  i === index
-                                    ? { ...p, amountPackages: e.target.value }
-                                    : p
-                                )
-                              )
-                            }
+                            // onChange={(e) =>
+                            //   setEditedProducts((prev) =>
+                            //     prev.map((p, i) =>
+                            //       i === index
+                            //         ? { ...p, amountPackages: e.target.value }
+                            //         : p
+                            //     )
+                            //   )
+                            // }
                           />
                         </div>
                       </div>
