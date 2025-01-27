@@ -11,6 +11,7 @@ import { InventoryDialog } from "./components/InventoryDialog";
 type KioskInventory = {
   id: string;
   kioskName: string;
+  facilityName: string;
   inventoryDate: string;
   products: Product[];
 };
@@ -34,19 +35,18 @@ const App2 = () => {
   const [isListView, setIsListView] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const facility = "Rosta Gärde";
-  const kiosk = "Kiosk 1";
-  const inventoryDate = "2025-06-13 14:25";
-
-  const { data, isLoading, error } = useQuery<Product[]>({
+  const { data, isLoading, error } = useQuery<KioskInventory>({
     queryKey: ["inventoryList"],
     queryFn: async () => {
-      const response = await fetch(`https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/6a81c35e-ff89-4520-9bb8-b743352fb8d3/kiosks/39c135a2-cdce-47b7-856e-3e5772568712/inventories`, { 
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/6a81c35e-ff89-4520-9bb8-b743352fb8d3/kiosks/39c135a2-cdce-47b7-856e-3e5772568712/inventories`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       if (!response) {
         throw new Error("Failed to fetch products");
       }
@@ -54,20 +54,13 @@ const App2 = () => {
         throw new Error("Failed to fetch products");
       }
       const dataResponse: KioskInventory = await response.json();
-      return dataResponse.products;
+      return dataResponse;
     },
   });
 
-  // useEffect(() => {
-  //   if (data) {
-  //     const initialProducts = data.map((item) => item.products);
-  //     setEditedProducts(initialProducts);
-  //   }
-  // }, [data]);
-
   useEffect(() => {
     if (data) {
-      const updatedProducts = data.map((product) => ({
+      const updatedProducts = data.products.map((product) => ({
         ...product,
         amountPieces: "",
         amountPackages: "",
@@ -78,10 +71,9 @@ const App2 = () => {
   }, [data]);
 
   //valideringsflagga
-  const isValid = editedProducts?.every(item =>
-    item.amountPieces != "" && item.amountPackages != ""
-    )
-
+  const isValid = editedProducts?.every(
+    (item) => item.amountPieces != "" && item.amountPackages != ""
+  );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault(); // Förhindra formulärets standardomladdning
@@ -97,7 +89,7 @@ const App2 = () => {
 
     try {
       const response = await fetch(
-        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d/inventories`,
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/6a81c35e-ff89-4520-9bb8-b743352fb8d3/kiosks/39c135a2-cdce-47b7-856e-3e5772568712/inventories`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -167,22 +159,26 @@ const App2 = () => {
     field: "pieces" | "packages",
     newValue: string | ((prev: string) => string)
   ) => {
-    setEditedProducts(prevProducts =>
+    setEditedProducts((prevProducts) =>
       prevProducts.map((product, index) =>
         index === currentProductIndex
           ? {
               ...product,
               [field === "pieces" ? "amountPieces" : "amountPackages"]:
                 typeof newValue === "function"
-                  ? newValue(String(product[field === "pieces" ? "amountPieces" : "amountPackages"]) || "")
+                  ? newValue(
+                      String(
+                        product[
+                          field === "pieces" ? "amountPieces" : "amountPackages"
+                        ]
+                      ) || ""
+                    )
                   : newValue,
             }
           : product
       )
     );
   };
-  
-  
 
   const goToNextFieldOrProduct = () => {
     if (keypadTarget === "pieces") {
@@ -237,11 +233,11 @@ const App2 = () => {
   // );
 
   const currentProduct = editedProducts[currentProductIndex];
-const currentAmountPieces = currentProduct?.amountPieces;
-const currentAmountPackages = currentProduct?.amountPackages;
-  
+  // const currentAmountPieces = currentProduct?.amountPieces;
+  // const currentAmountPackages = currentProduct?.amountPackages;
+
   console.log(editedProducts);
-  
+
   if (!currentProduct) {
     return <div>No products available.</div>;
   }
@@ -253,10 +249,11 @@ const currentAmountPackages = currentProduct?.amountPackages;
   return (
     <>
       <InventoryDialog
-        facility={facility}
-        kiosk={kiosk}
-        inventoryDate={inventoryDate}
+        facility={data!.facilityName}
+        kiosk={data!.kioskName}
+        inventoryDate={data!.inventoryDate}
       />
+
       <Toaster />
       <div className="relative h-[90vh]">
         <div
@@ -268,16 +265,7 @@ const currentAmountPackages = currentProduct?.amountPackages;
         >
           {!isListView && (
             <div className="grid grid-rows-[auto_auto_2fr]  h-[90vh] container mx-auto p-4">
-              {/* <div>
-                <h2 className="text-center w-full mb-1 h-fit">
-                  {facility} {kiosk}
-                </h2>
-                <p className="text-center text-xs">
-                  Senast inventering: {inventoryDate}
-                </p>
-              </div> */}
-
-              <div className="flex flex-col items-center justify-center relative mb-5">
+              <div className="flex flex-col items-center justify-center relative">
                 <form onSubmit={handleSubmit} className="w-fit mx-auto mb-5">
                   {/* Progress display */}
                   <div className="mt-auto">
@@ -289,7 +277,7 @@ const currentAmountPackages = currentProduct?.amountPackages;
                         isValid ? "bg-green-200" : "bg-neutral-200"
                       } rounded-full p-2`}
                     >
-                      {currentProductIndex + 1}/{data?.length}
+                      {currentProductIndex + 1}/{data?.products.length}
                     </span>
                   </div>
 
@@ -300,7 +288,7 @@ const currentAmountPackages = currentProduct?.amountPackages;
                         <p className="text-xs font-semibold">Antal i styck</p>
 
                         <Input
-                          value={currentAmountPieces}
+                          value={currentProduct.amountPieces}
                           onFocus={() => {
                             handleFocus("pieces");
                             setKeypadTarget("pieces");
@@ -330,7 +318,7 @@ const currentAmountPackages = currentProduct?.amountPackages;
                         </p>
 
                         <Input
-                          value={currentAmountPackages}
+                          value={currentProduct.amountPackages}
                           onFocus={() => {
                             handleFocus("packages");
                             setKeypadTarget("packages");
@@ -392,12 +380,13 @@ const currentAmountPackages = currentProduct?.amountPackages;
                   Byt till listvy
                   <LayoutList className="w-20 h-20" />
                 </Button>
+                
                 <Button
                   type="button"
                   onClick={() => {
                     goToNextFieldOrProduct();
                   }}
-                  className="place-self-center rounded-xl h-12"
+                  className={`place-self-center rounded-xl h-12 ${isValid && currentProductIndex === editedProducts.length -1 && activeInput != "pieces" ? "opacity-0 cursor-none pointer-events-none" : ""}`}
                   variant={"outline"}
                 >
                   <ArrowBigRight className="" />
@@ -420,13 +409,21 @@ const currentAmountPackages = currentProduct?.amountPackages;
             <div className="container mx-auto p-3 ">
               <div className="rounded-xl border border-black border-solid text-black aspect-video relative">
                 <h2 className="text-lg lg:text-3xl text-center w-full mt-10 font-bold">
-                  Inventera {facility} {kiosk}
+                  Inventera {data!.facilityName} {data!.kioskName}
                 </h2>
                 <div className="w-full place-items-center mt-5 gap-3 mb-16">
                   <p className="text-sm lg:text-lg">
                     Senast inventering gjord:
                   </p>
-                  <h3 className="lg:text-lg font-semibold">{inventoryDate}</h3>
+                  <h3 className="lg:text-lg text-xs font-semibold">
+                    {new Intl.DateTimeFormat("sv-SE", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(new Date(data!.inventoryDate))}
+                  </h3>
                 </div>
 
                 <form onSubmit={handleSubmit}>
@@ -450,15 +447,15 @@ const currentAmountPackages = currentProduct?.amountPackages;
                           <Input
                             type="number"
                             value={product.amountPieces}
-                            // onChange={(e) =>
-                            //   setEditedProducts((prev) =>
-                            //     prev.map((p, i) =>
-                            //       i === index
-                            //         ? { ...p, amountPieces: e.target.value }
-                            //         : p
-                            //     )
-                            //   )
-                            // }
+                            onChange={(e) =>
+                              setEditedProducts((prev) =>
+                                prev.map((p, i) =>
+                                  i === index
+                                    ? { ...p, amountPieces: e.target.value }
+                                    : p
+                                )
+                              )
+                            }
                           />
                         </div>
                         <div className="flex flex-col">
@@ -468,15 +465,15 @@ const currentAmountPackages = currentProduct?.amountPackages;
                           <Input
                             type="number"
                             value={product.amountPackages}
-                            // onChange={(e) =>
-                            //   setEditedProducts((prev) =>
-                            //     prev.map((p, i) =>
-                            //       i === index
-                            //         ? { ...p, amountPackages: e.target.value }
-                            //         : p
-                            //     )
-                            //   )
-                            // }
+                            onChange={(e) =>
+                              setEditedProducts((prev) =>
+                                prev.map((p, i) =>
+                                  i === index
+                                    ? { ...p, amountPackages: e.target.value }
+                                    : p
+                                )
+                              )
+                            }
                           />
                         </div>
                       </div>
