@@ -7,6 +7,7 @@ import { toast } from "./hooks/use-toast";
 import { Toaster } from "./components/ui/toaster";
 import { ArrowBigLeft, ArrowBigLeftDash, ArrowBigRight, CircleChevronLeft, LayoutList } from "lucide-react";
 import { InventoryDialog } from "./components/InventoryDialog";
+import { DialogTrigger } from "./components/ui/dialog";
 
 type KioskInventory = {
   id: string;
@@ -146,10 +147,11 @@ const App2 = () => {
       }
       toast({
         title: "Lyckat!",
-        description: "Inventeringen skickades iväg",
+        description: "Inventeringen skickades iväg! Du kan nu stänga fönstret.",
         className: "bg-green-200",
       });
 
+      // DialogTrigger(<InventoryDialog facility={data!.facilityName} kiosk={data!.kioskName} inventoryDate={updatedInventoryDate}></InventoryDialog>);
       // återställer alla fält
       setEditedProducts((prevProducts) =>
         prevProducts.map((product) => ({
@@ -158,6 +160,8 @@ const App2 = () => {
           amountPackages: "",
         }))
       );
+
+      
     } catch (error) {
       console.error("Update failed:", error);
       toast({
