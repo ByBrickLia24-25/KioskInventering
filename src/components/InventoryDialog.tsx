@@ -38,13 +38,7 @@ export function InventoryDialog({
 
           <p className="text-center text-xs">
             Senast inventering:{" "}
-            {new Intl.DateTimeFormat("sv-SE", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            }).format(new Date(inventoryDate))}
+           {inventoryDate}
           </p>
         </div>
         <DialogFooter>

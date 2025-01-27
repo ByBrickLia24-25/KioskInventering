@@ -34,6 +34,7 @@ const App2 = () => {
   );
   const [isListView, setIsListView] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [inventoryDate, setInventoryDate] = useState("");
 
   const { data, isLoading, error } = useQuery<KioskInventory>({
     queryKey: ["inventoryList"],
@@ -67,8 +68,38 @@ const App2 = () => {
       }));
       setEditedProducts(updatedProducts);
       console.log("Updated editedProducts:", updatedProducts);
+      const lastInventoryDate = data.inventoryDate;
+      setInventoryDate(lastInventoryDate);
     }
   }, [data]);
+
+  const calculateTimeSinceLastInventory = (inventoryDate: string) => {
+    const currentTimeStamp = new Date();
+    const lastInventoryDate = new Date(inventoryDate);
+  
+    // Beräkna skillnaden i millisekunder
+    const timeDifference = currentTimeStamp.getTime() - lastInventoryDate.getTime();
+  
+    // Hantera framtida datum
+    if (timeDifference < 0) {
+      return { updatedInventoryDate: "Inventeringen ligger i framtiden!" };
+    }
+  
+    // Konvertera millisekunder till dagar, timmar och minuter
+    const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+  
+    // Skapa en mänskligt läsbar sträng baserat på tiden
+    const updatedInventoryDate = days > 0
+    ? `${days} dagar, ${hours} timmar och ${minutes} minuter sen`
+    : hours > 0
+      ? `${hours} timmar och ${minutes} minuter sen`
+      : `${minutes} minuter sen`;
+  
+  
+    return { updatedInventoryDate };
+  };
 
   //valideringsflagga
   const isValid = editedProducts?.every(
@@ -228,13 +259,7 @@ const App2 = () => {
     return <div>Error: {String(error)}</div>;
   }
 
-  // const currentProduct = data?.map(
-  //   (item) => item.products[currentProductIndex]
-  // );
-
   const currentProduct = editedProducts[currentProductIndex];
-  // const currentAmountPieces = currentProduct?.amountPieces;
-  // const currentAmountPackages = currentProduct?.amountPackages;
 
   console.log(editedProducts);
 
@@ -246,16 +271,18 @@ const App2 = () => {
     setActiveInput(field);
   };
 
+  const { updatedInventoryDate } = calculateTimeSinceLastInventory(inventoryDate);
+
   return (
     <>
       <InventoryDialog
         facility={data!.facilityName}
         kiosk={data!.kioskName}
-        inventoryDate={data!.inventoryDate}
+        inventoryDate={updatedInventoryDate}
       />
 
       <Toaster />
-      <div className="relative h-[90vh]">
+      <div className="relative h-full">
         <div
           className={`${
             isListView ? "opacity-0 pointer-events-none" : "opacity-100"
@@ -264,7 +291,7 @@ const App2 = () => {
           }`}
         >
           {!isListView && (
-            <div className="grid grid-rows-[auto_auto_2fr]  h-[90vh] container mx-auto p-4">
+            <div className="grid grid-rows-[auto_auto_2fr] h-[80vh] container mx-auto p-4 gap-3">
               <div className="flex flex-col items-center justify-center relative">
                 <form onSubmit={handleSubmit} className="w-fit mx-auto mb-5">
                   {/* Progress display */}
@@ -343,13 +370,13 @@ const App2 = () => {
                       </>
                     </div>
                   </div>
-                  {isValid && (
+                  
                     <div className="w-full flex">
-                      <Button type="submit" className="mt-10 mx-auto">
+                      <Button type="submit" className={`mt-10 mx-auto bg-orange-400 ${isValid ? "opacity-100": "opacity-0"}`} variant={"secondary"} >
                         Skicka in inventering
                       </Button>
                     </div>
-                  )}
+                
                 </form>
               </div>
               <div className="flex justify-between mx-5">
@@ -380,13 +407,13 @@ const App2 = () => {
                   Byt till listvy
                   <LayoutList className="w-20 h-20" />
                 </Button>
-                
+
                 <Button
                   type="button"
                   onClick={() => {
                     goToNextFieldOrProduct();
                   }}
-                  className={`place-self-center rounded-xl h-12 ${isValid && currentProductIndex === editedProducts.length -1 && activeInput != "pieces" ? "opacity-0 cursor-none pointer-events-none" : ""}`}
+                  className={`place-self-center rounded-xl h-12`}
                   variant={"outline"}
                 >
                   <ArrowBigRight className="" />
@@ -406,8 +433,8 @@ const App2 = () => {
           }`}
         >
           {isListView && (
-            <div className="container mx-auto p-3 ">
-              <div className="rounded-xl border border-black border-solid text-black aspect-video relative">
+            <div className="container mx-auto p-3 h-[100vh] relative">
+              <div className="rounded-xl border border-black border-solid h-full text-black">
                 <h2 className="text-lg lg:text-3xl text-center w-full mt-10 font-bold">
                   Inventera {data!.facilityName} {data!.kioskName}
                 </h2>
@@ -416,17 +443,11 @@ const App2 = () => {
                     Senast inventering gjord:
                   </p>
                   <h3 className="lg:text-lg text-xs font-semibold">
-                    {new Intl.DateTimeFormat("sv-SE", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }).format(new Date(data!.inventoryDate))}
+                    {updatedInventoryDate}
                   </h3>
                 </div>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} className="">
                   {editedProducts?.map((product, index) => (
                     <div
                       key={product.id}
@@ -481,9 +502,10 @@ const App2 = () => {
                   ))}
                   <div className="mx-auto w-fit">
                     <Button
-                      type="submit"
+                      type="submit" 
+                      variant={"secondary"}
                       className={`mt-5 mx-auto ${
-                        !isValid ? "bg-gray-500" : ""
+                        !isValid ? "bg-gray-500" : "bg-orange-400"
                       }`}
                       disabled={!isValid}
                     >
@@ -493,7 +515,7 @@ const App2 = () => {
                 </form>
                 <Button
                   type="button"
-                  className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3 `}
+                  className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3`}
                   variant={"outline"}
                   onClick={() => {
                     toggleListView();
