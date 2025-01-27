@@ -18,8 +18,8 @@ type KioskInventory = {
 interface Product {
   id: string;
   productName: string;
-  amountPieces: number;
-  amountPackages: number;
+  amountPieces: number | string;
+  amountPackages: number | string;
 }
 
 const App2 = () => {
@@ -69,6 +69,8 @@ const App2 = () => {
     if (data) {
       const updatedProducts = data.map((product) => ({
         ...product,
+        amountPieces: "",
+        amountPackages: "",
       }));
       setEditedProducts(updatedProducts);
       console.log("Updated editedProducts:", updatedProducts);
@@ -77,7 +79,7 @@ const App2 = () => {
 
   //valideringsflagga
   const isValid = editedProducts?.every(item =>
-    item.amountPieces !== undefined && item.amountPackages !== undefined
+    item.amountPieces != "" && item.amountPackages != ""
     )
 
 
@@ -125,14 +127,14 @@ const App2 = () => {
         className: "bg-green-200",
       });
 
-      //återställer alla fält
-      // setEditedProducts((prevProducts) =>
-      //   prevProducts.map((product) => ({
-      //     ...product,
-      //     amountPieces: undefined,
-      //     amountPackages: undefined,
-      //   }))
-      // );
+      // återställer alla fält
+      setEditedProducts((prevProducts) =>
+        prevProducts.map((product) => ({
+          ...product,
+          amountPieces: "",
+          amountPackages: "",
+        }))
+      );
     } catch (error) {
       console.error("Update failed:", error);
       toast({
@@ -162,23 +164,25 @@ const App2 = () => {
   };
 
   const updateCurrentProduct = (
-  field: "pieces" | "packages",
-  newValue: string | ((prev: string) => string)
-) => {
-  setEditedProducts(prevProducts =>
-    prevProducts.map((product, index) =>
-      index === currentProductIndex
-        ? {
-            ...product,
-            [field === "pieces" ? "amountPieces" : "amountPackages"]:
-              typeof newValue === "function"
-                ? parseInt(newValue(String(product[field === "pieces" ? "amountPieces" : "amountPackages"])) || "", 10)
-                : parseInt(newValue, 10),
-          }
-        : product
-    )
-  );
-};
+    field: "pieces" | "packages",
+    newValue: string | ((prev: string) => string)
+  ) => {
+    setEditedProducts(prevProducts =>
+      prevProducts.map((product, index) =>
+        index === currentProductIndex
+          ? {
+              ...product,
+              [field === "pieces" ? "amountPieces" : "amountPackages"]:
+                typeof newValue === "function"
+                  ? newValue(String(product[field === "pieces" ? "amountPieces" : "amountPackages"]) || "")
+                  : newValue,
+            }
+          : product
+      )
+    );
+  };
+  
+  
 
   const goToNextFieldOrProduct = () => {
     if (keypadTarget === "pieces") {
