@@ -5,7 +5,7 @@ import { Button } from "./components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "./hooks/use-toast";
 import { Toaster } from "./components/ui/toaster";
-import { ArrowBigLeft, ArrowBigRight, LayoutList } from "lucide-react";
+import { ArrowBigLeft, ArrowBigLeftDash, ArrowBigRight, CircleChevronLeft, LayoutList } from "lucide-react";
 import { InventoryDialog } from "./components/InventoryDialog";
 
 type KioskInventory = {
@@ -515,13 +515,13 @@ const App2 = () => {
                 </form>
                 <Button
                   type="button"
-                  className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3`}
+                  className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3 `}
                   variant={"outline"}
                   onClick={() => {
                     toggleListView();
                   }}
                 >
-                  <LayoutList className="w-20 h-20" />
+                  <ArrowBigLeftDash className="w-20 h-20" />
                 </Button>
               </div>
             </div>
