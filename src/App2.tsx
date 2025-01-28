@@ -5,18 +5,22 @@ import { Button } from "./components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "./hooks/use-toast";
 import { Toaster } from "./components/ui/toaster";
-import { ArrowBigLeft, ArrowBigRight, LayoutList } from "lucide-react";
+import { ArrowBigLeft, ArrowBigLeftDash, ArrowBigRight, LayoutList } from "lucide-react";
+import { InventoryDialog } from "./components/InventoryDialog";
 
 type KioskInventory = {
-  id: number;
-  products: Products[];
+  id: string;
+  kioskName: string;
+  facilityName: string;
+  inventoryDate: string;
+  products: Product[];
 };
 
-interface Products {
-  id: number;
+interface Product {
+  id: string;
   productName: string;
-  amountPieces: string | number;
-  amountPackages: string | number;
+  amountPieces: number | string;
+  amountPackages: number | string;
 }
 
 const App2 = () => {
@@ -24,45 +28,83 @@ const App2 = () => {
   const [keypadTarget, setKeypadTarget] = useState<"pieces" | "packages">(
     "pieces"
   );
-  const [editedProducts, setEditedProducts] = useState<Products[]>([]);
+  const [editedProducts, setEditedProducts] = useState<Product[]>([]);
   const [activeInput, setActiveInput] = useState<"pieces" | "packages" | null>(
     "pieces"
   );
   const [isListView, setIsListView] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [inventoryDate, setInventoryDate] = useState("");
 
-  const facility = "Rosta Gärde";
-  const kiosk = "Kiosk 1";
-  const inventoryDate = "2025-06-13 14:25";
-
-  const id = "3395";
-
-  const { data, isLoading, error } = useQuery<Products[]>({
+  const { data, isLoading, error } = useQuery<KioskInventory>({
     queryKey: ["inventoryList"],
     queryFn: async () => {
-      const response = await fetch(`http://localhost:3000/inventoryList/${id}`);
+      const response = await fetch(
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d
+/inventories`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      if (!response) {
+        throw new Error("Failed to fetch products");
+      }
       if (!response.ok) {
         throw new Error("Failed to fetch products");
       }
-      const data: KioskInventory = await response.json();
-      return data.products;
+      const dataResponse: KioskInventory = await response.json();
+      return dataResponse;
     },
   });
 
   useEffect(() => {
     if (data) {
-      const updatedProducts = data.map((product) => ({
+      const updatedProducts = data.products.map((product) => ({
         ...product,
         amountPieces: "",
         amountPackages: "",
       }));
       setEditedProducts(updatedProducts);
       console.log("Updated editedProducts:", updatedProducts);
+      const lastInventoryDate = data.inventoryDate;
+      setInventoryDate(lastInventoryDate);
     }
   }, [data]);
 
+  const calculateTimeSinceLastInventory = (inventoryDate: string) => {
+    const currentTimeStamp = new Date();
+    const lastInventoryDate = new Date(inventoryDate);
+  
+    // Beräkna skillnaden i millisekunder
+    const timeDifference = currentTimeStamp.getTime() - lastInventoryDate.getTime();
+  
+    // Hantera framtida datum
+    if (timeDifference < 0) {
+      return { updatedInventoryDate: "Inventeringen ligger i framtiden!" };
+    }
+  
+    // Konvertera millisekunder till dagar, timmar och minuter
+    const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
+  
+    // Skapa en mänskligt läsbar sträng baserat på tiden
+    const updatedInventoryDate = days > 0
+    ? `${days} dagar, ${hours} timmar och ${minutes} minuter sen`
+    : hours > 0
+      ? `${hours} timmar och ${minutes} minuter sen`
+      : `${minutes} minuter sen`;
+  
+  
+    return { updatedInventoryDate };
+  };
+
   //valideringsflagga
-  const isValid = editedProducts.every(
-    (product) => product.amountPieces !== "" && product.amountPackages !== ""
+  const isValid = editedProducts?.every(
+    (item) => item.amountPieces != "" && item.amountPackages != ""
   );
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -78,26 +120,40 @@ const App2 = () => {
     }
 
     try {
-      const url = `http://localhost:3000/inventoryList/${id}`;
-      const response = await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ products: editedProducts }),
-      });
+      const response = await fetch(
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d
+/inventories`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ products: editedProducts }),
+        }
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Server response error:", errorText);
-        throw new Error("Failed to update list");
+      if (!response) {
+        toast({
+          title: "Misslyckat!",
+          description: "Inventeringen kunde inte skickas iväg",
+          className: "bg-red-200",
+        });
+        throw new Error("Failed to send inventory");
       }
-
+      if (!response.ok) {
+        toast({
+          title: "Misslyckat!",
+          description: "Inventeringen kunde inte skickas iväg",
+          className: "bg-red-200",
+        });
+        throw new Error("Failed to send inventory");
+      }
       toast({
         title: "Lyckat!",
-        description: "Inventeringen skickades iväg",
+        description: "Inventeringen skickades iväg! Du kan nu stänga fönstret.",
         className: "bg-green-200",
       });
 
-      //återställer alla fält
+      // DialogTrigger(<InventoryDialog facility={data!.facilityName} kiosk={data!.kioskName} inventoryDate={updatedInventoryDate}></InventoryDialog>);
+      // återställer alla fält
       setEditedProducts((prevProducts) =>
         prevProducts.map((product) => ({
           ...product,
@@ -105,6 +161,8 @@ const App2 = () => {
           amountPackages: "",
         }))
       );
+
+      
     } catch (error) {
       console.error("Update failed:", error);
       toast({
@@ -137,11 +195,6 @@ const App2 = () => {
     field: "pieces" | "packages",
     newValue: string | ((prev: string) => string)
   ) => {
-    const parseValue = (value: string) => {
-      const parsedValue = parseInt(value, 10);
-      return isNaN(parsedValue) ? "" : parsedValue;
-    };
-
     setEditedProducts((prevProducts) =>
       prevProducts.map((product, index) =>
         index === currentProductIndex
@@ -149,18 +202,14 @@ const App2 = () => {
               ...product,
               [field === "pieces" ? "amountPieces" : "amountPackages"]:
                 typeof newValue === "function"
-                  ? parseValue(
-                      newValue(
-                        String(
-                          product[
-                            field === "pieces"
-                              ? "amountPieces"
-                              : "amountPackages"
-                          ]
-                        )
-                      )
+                  ? newValue(
+                      String(
+                        product[
+                          field === "pieces" ? "amountPieces" : "amountPackages"
+                        ]
+                      ) || ""
                     )
-                  : parseValue(newValue),
+                  : newValue,
             }
           : product
       )
@@ -172,8 +221,8 @@ const App2 = () => {
       setKeypadTarget("packages");
       handleFocus("packages");
     } else {
-      setKeypadTarget("pieces"); 
-      handleFocus("pieces"); 
+      setKeypadTarget("pieces");
+      handleFocus("pieces");
       setCurrentProductIndex((prevIndex) =>
         prevIndex + 1 >= editedProducts.length ? 0 : prevIndex + 1
       );
@@ -200,10 +249,11 @@ const App2 = () => {
   };
 
   const toggleListView = () => {
-    if (!isListView) setIsListView(true);
-    else {
-      setIsListView(false);
-    }
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setIsListView((prev) => !prev);
+      setIsTransitioning(false);
+    }, 300);
   };
 
   if (isLoading || !editedProducts.length) {
@@ -214,9 +264,10 @@ const App2 = () => {
     return <div>Error: {String(error)}</div>;
   }
 
-  const currentProduct = data?.[currentProductIndex];
-  const currentEditedProduct = editedProducts[currentProductIndex];
+  const currentProduct = editedProducts[currentProductIndex];
+
   console.log(editedProducts);
+
   if (!currentProduct) {
     return <div>No products available.</div>;
   }
@@ -225,223 +276,263 @@ const App2 = () => {
     setActiveInput(field);
   };
 
+  const { updatedInventoryDate } = calculateTimeSinceLastInventory(inventoryDate);
+
   return (
     <>
+      <InventoryDialog
+        facility={data!.facilityName}
+        kiosk={data!.kioskName}
+        inventoryDate={updatedInventoryDate}
+      />
+
       <Toaster />
-      {!isListView && (
-        <div className="grid grid-rows-[auto__1fr_auto_2fr] h-screen container mx-auto p-4">
-          <div>
-            <h2 className="text-center w-full mb-1 h-fit">
-              {facility} {kiosk}
-            </h2>
-            <p className="text-center text-xs">
-              Senast inventering: {inventoryDate}
-            </p>
-          </div>
+      <div className="relative h-full">
+        <div
+          className={`${
+            isListView ? "opacity-0 pointer-events-none" : "opacity-100"
+          } transition-opacity duration-100 absolute inset-0 ${
+            isTransitioning ? "z-10" : ""
+          }`}
+        >
+          {!isListView && (
+            <div className="grid grid-rows-[auto_auto_2fr] h-[80vh] container mx-auto p-4 gap-3">
+              <div className="flex flex-col items-center justify-center relative">
+                <form onSubmit={handleSubmit} className="w-fit mx-auto mb-5">
+                  {/* Progress display */}
+                  <div className="mt-auto">
+                    <h3 className="text-2xl font-bold text-center p-2 mb-6">
+                      {currentProduct.productName}
+                    </h3>
+                    <span
+                      className={`text-right text-xs absolute top-7 right-0 ${
+                        isValid ? "bg-green-200" : "bg-neutral-200"
+                      } rounded-full p-2`}
+                    >
+                      {currentProductIndex + 1}/{data?.products.length}
+                    </span>
+                  </div>
 
-          <div className="flex flex-col items-center justify-center relative">
-            <form onSubmit={handleSubmit} className="w-fit mx-auto mb-5">
-              {/* Progress display */}
-              <div className="mt-auto">
-                <h3 className="text-2xl font-bold text-center p-2 mb-6">
-                  {currentProduct.productName}
-                </h3>
-                <span
-                  className={`text-right text-xs absolute -top-7 right-0 ${
-                    isValid ? "bg-green-200" : "bg-neutral-200"
-                  } rounded-full p-2`}
+                  <div className="flex flex-col gap-6">
+                    <div className="flex flex-col mx-auto">
+                      {/* {activeInput === "pieces" && ( */}
+                      <>
+                        <p className="text-xs font-semibold">Antal i styck</p>
+
+                        <Input
+                          value={currentProduct.amountPieces}
+                          onFocus={() => {
+                            handleFocus("pieces");
+                            setKeypadTarget("pieces");
+                          }}
+                          onClick={() => {
+                            handleFocus("pieces");
+                            setKeypadTarget("pieces");
+                          }}
+                          onChange={(e) =>
+                            updateCurrentProduct("pieces", () => e.target.value)
+                          }
+                          readOnly
+                          autoFocus
+                          className={`border-b-2 border-black border-x-0 border-t-0 shadow-none rounded-none focus:outline-none focus-visible:ring-0 focus:border-orange-200 active:border-orange-200 w-[200px] p-2  ${
+                            activeInput === "pieces"
+                              ? "border-orange-400 "
+                              : "border-gray-300"
+                          }`}
+                        />
+                      </>
+                    </div>
+                    <div className="flex flex-col mx-auto">
+                      {/* {activeInput === "packages" && ( */}
+                      <>
+                        <p className="text-xs font-semibold">
+                          Antal i obrutna förpackningar
+                        </p>
+
+                        <Input
+                          value={currentProduct.amountPackages}
+                          onFocus={() => {
+                            handleFocus("packages");
+                            setKeypadTarget("packages");
+                          }}
+                          onClick={() => {
+                            handleFocus("packages");
+                            setKeypadTarget("packages");
+                          }}
+                          onChange={(e) =>
+                            updateCurrentProduct(
+                              "packages",
+                              () => e.target.value
+                            )
+                          }
+                          readOnly
+                          className={`border-b-2 border-black border-x-0 border-t-0 shadow-none rounded-none focus:outline-none focus-visible:ring-0 focus:border-orange-200 active:border-orange-200 w-[200px] p-2   ${
+                            activeInput === "packages"
+                              ? "border-orange-400 "
+                              : "border-gray-300"
+                          }`}
+                        />
+                      </>
+                    </div>
+                  </div>
+                  
+                    <div className="w-full flex">
+                      <Button type="submit" className={`mt-10 mx-auto bg-orange-400 ${isValid ? "opacity-100": "opacity-0"}`} variant={"secondary"} >
+                        Skicka in inventering
+                      </Button>
+                    </div>
+                
+                </form>
+              </div>
+              <div className="flex justify-between mx-5">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    goToPreviousFieldOrProduct();
+                  }}
+                  className={`place-self-center rounded-xl h-12 ${
+                    currentProductIndex === 0 &&
+                    activeInput === "pieces" &&
+                    !isValid
+                      ? "invisible"
+                      : ""
+                  }`}
+                  variant={"outline"}
                 >
-                  {currentProductIndex + 1}/{editedProducts.length}
-                </span>
-              </div>
+                  <ArrowBigLeft />
+                </Button>
+                <Button
+                  type="button"
+                  className="w-36 h-12 shadow border m-1 p-1 rounded-xl font-light"
+                  variant={"default"}
+                  onClick={() => {
+                    toggleListView();
+                  }}
+                >
+                  Byt till listvy
+                  <LayoutList className="w-20 h-20" />
+                </Button>
 
-              <div className="flex flex-col">
-                {activeInput === "pieces" && (
-                  <>
-                    <p className="text-xs font-semibold">Antal i styck</p>
-
-                    <Input
-                      value={currentEditedProduct.amountPieces}
-                      onFocus={() => {
-                        handleFocus("pieces");
-                        setKeypadTarget("pieces");
-                      }}
-                      onClick={() => {
-                        handleFocus("pieces");
-                        setKeypadTarget("pieces");
-                      }}
-                      onChange={(e) =>
-                        updateCurrentProduct("pieces", () => e.target.value)
-                      }
-                      readOnly
-                      autoFocus
-                      className={`border-b-2 border-black border-x-0 border-t-0 shadow-none rounded-none focus:outline-none focus-visible:ring-0 focus:border-orange-200 active:border-orange-200 w-full p-2  ${
-                        activeInput === "pieces"
-                          ? "border-orange-400 "
-                          : "border-gray-300"
-                      }`}
-                    />
-                  </>
-                )}
+                <Button
+                  type="button"
+                  onClick={() => {
+                    goToNextFieldOrProduct();
+                  }}
+                  className={`place-self-center rounded-xl h-12`}
+                  variant={"outline"}
+                >
+                  <ArrowBigRight className="" />
+                </Button>
               </div>
-              <div className="flex flex-col">
-                {activeInput === "packages" && (
-                  <>
-                    <p className="text-xs font-semibold">
-                      Antal i obrutna förpackningar
-                    </p>
-
-                    <Input
-                      value={currentEditedProduct.amountPackages}
-                      onFocus={() => {
-                        handleFocus("packages");
-                        setKeypadTarget("packages");
-                      }}
-                      onClick={() => {
-                        handleFocus("packages");
-                        setKeypadTarget("packages");
-                      }}
-                      onChange={(e) =>
-                        updateCurrentProduct("packages", () => e.target.value)
-                      }
-                      readOnly
-                      className={`border-b-2 border-black border-x-0 border-t-0 shadow-none rounded-none focus:outline-none focus-visible:ring-0 focus:border-orange-200 active:border-orange-200 w-full p-2   ${
-                        activeInput === "packages"
-                          ? "border-orange-400 "
-                          : "border-gray-300"
-                      }`}
-                    />
-                  </>
-                )}
+              <div className="flex relative">
+                <Keypad onKeyPressed={handleKeypadPress} />
               </div>
-              {isValid && (
-                <div className="w-full flex">
-                  <Button type="submit" className="mt-10 mx-auto">
-                    Skicka in inventering
-                  </Button>
+            </div>
+          )}
+        </div>
+        <div
+          className={`${
+            isListView ? "opacity-100" : "opacity-0 pointer-events-none"
+          } transition-opacity duration-100 absolute inset-0 ${
+            isTransitioning ? "z-10" : ""
+          }`}
+        >
+          {isListView && (
+            <div className="container mx-auto p-3 h-[100vh] lg: w-full">
+              <div className="rounded-xl border border-black border-solid h-full text-black">
+                <h2 className="text-lg lg:text-3xl text-center w-full mt-10 font-bold">
+                  Inventera {data!.facilityName} {data!.kioskName}
+                </h2>
+                <div className="w-full place-items-center mt-5 gap-3 mb-16">
+                  <p className="text-sm lg:text-lg">
+                    Senast inventering gjord:
+                  </p>
+                  <h3 className="lg:text-lg text-xs font-semibold">
+                    {updatedInventoryDate}
+                  </h3>
                 </div>
-              )}
-            </form>
-          </div>
-          <div className="flex justify-between mx-5">
-            <Button
-              type="button"
-              onClick={() => {
-                goToPreviousFieldOrProduct();
-              }}
-              className={`place-self-center rounded-xl h-12 ${
-                currentProductIndex === 0 &&
-                activeInput === "pieces" &&
-                !isValid
-                  ? "invisible"
-                  : ""
-              }`}
-              variant={"outline"}
-            >
-              <ArrowBigLeft />
-            </Button>
 
-            <Button
-              type="button"
-              onClick={() => {
-                goToNextFieldOrProduct();
-              }}
-              className="place-self-center rounded-xl h-12"
-              variant={"outline"}
-            >
-              <ArrowBigRight className="" />
-            </Button>
-          </div>
-          <div className="flex relative">
-            <Keypad onKeyPressed={handleKeypadPress} />
-            <Button
-              type="button"
-              className="w-16 h-16 shadow border m-1 p-1 rounded-full absolute right-0 bottom-2"
-              variant={"outline"}
-              onClick={() => {
-                toggleListView();
-              }}
-            >
-              <LayoutList className="w-20 h-20" />
-            </Button>
-          </div>
-        </div>
-      )}
-      {isListView && (
-        <div className="container mx-auto p-3 ">
-          <div className="rounded-xl border border-black border-solid text-black aspect-video relative">
-            <h2 className="text-lg lg:text-3xl text-center w-full mt-10 font-bold">
-              Inventera {facility} {kiosk}
-            </h2>
-            <div className="w-full place-items-center mt-5 gap-3 mb-16">
-              <p className="text-sm lg:text-lg">Senast inventering gjord:</p>
-              <h3 className="lg:text-lg font-semibold">{inventoryDate}</h3>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-        {editedProducts.map((product, index) => (
-          <div
-            key={product.id}
-            className={`space-y-4 lg:flex ${
-              index % 2 === 0
-                ? "bg-gray-100 rounded-lg p-5"
-                : "bg-white rounded-lg p-5"
-            }`}
-          >
-            <div className="flex flex-col lg:flex-row lg:gap-4">
-              <h3 className="text-lg font-bold">{product.productName}</h3>
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold">Antal i styck</label>
-                <Input
-                  value={product.amountPieces}
-                  onChange={(e) =>
-                    setEditedProducts((prev) =>
-                      prev.map((p, i) =>
-                        i === index
-                          ? { ...p, amountPieces: e.target.value }
-                          : p
-                      )
-                    )
-                  }
-                />
-              </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-semibold">
-                  Antal i förpackning
-                </label>
-                <Input
-                  value={product.amountPackages}
-                  onChange={(e) =>
-                    setEditedProducts((prev) =>
-                      prev.map((p, i) =>
-                        i === index
-                          ? { ...p, amountPackages: e.target.value }
-                          : p
-                      )
-                    )
-                  }
-                />
+                <form onSubmit={handleSubmit} className="">
+                  {editedProducts?.map((product, index) => (
+                    <div
+                      key={product.id}
+                      className={`space-y-4 lg:flex ${
+                        index % 2 === 0
+                          ? "bg-gray-100 rounded-lg p-5"
+                          : "bg-white rounded-lg p-5"
+                      }`}
+                    >
+                      <div className="flex flex-col lg:flex-row lg:gap-4">
+                        <h3 className="text-lg font-bold">
+                          {product.productName}
+                        </h3>
+                        <div className="flex flex-col">
+                          <label className="text-sm font-semibold">
+                            Antal i styck
+                          </label>
+                          <Input
+                            type="number"
+                            value={product.amountPieces}
+                            onChange={(e) =>
+                              setEditedProducts((prev) =>
+                                prev.map((p, i) =>
+                                  i === index
+                                    ? { ...p, amountPieces: e.target.value }
+                                    : p
+                                )
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <label className="text-sm font-semibold">
+                            Antal i förpackning
+                          </label>
+                          <Input
+                            type="number"
+                            value={product.amountPackages}
+                            onChange={(e) =>
+                              setEditedProducts((prev) =>
+                                prev.map((p, i) =>
+                                  i === index
+                                    ? { ...p, amountPackages: e.target.value }
+                                    : p
+                                )
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mx-auto w-fit">
+                    <Button
+                      type="submit" 
+                      variant={"secondary"}
+                      className={`mt-5 mx-auto ${
+                        !isValid ? "bg-gray-500" : "bg-orange-400"
+                      }`}
+                      disabled={!isValid}
+                    >
+                      Skicka in inventering
+                    </Button>
+                  </div>
+                </form>
+                <Button
+                  type="button"
+                  className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3 lg:right-10 xl:right-36 `}
+                  variant={"outline"}
+                  onClick={() => {
+                    toggleListView();
+                  }}
+                >
+                  <ArrowBigLeftDash className="w-20 h-20" />
+                </Button>
               </div>
             </div>
-          </div>
-        ))}
-        <Button type="submit" className="mt-5">
-          Skicka in inventering
-        </Button>
-      </form>
-            <Button
-              type="button"
-              className="w-16 h-16 shadow border m-1 p-1 rounded-full sticky right-0 bottom-2"
-              variant={"outline"}
-              onClick={() => {
-                toggleListView();
-              }}
-            >
-              <LayoutList className="w-20 h-20" />
-            </Button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </>
   );
 };
