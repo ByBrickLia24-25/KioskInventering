@@ -5,9 +5,8 @@ import { Button } from "./components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "./hooks/use-toast";
 import { Toaster } from "./components/ui/toaster";
-import { ArrowBigLeft, ArrowBigLeftDash, ArrowBigRight, CircleChevronLeft, LayoutList } from "lucide-react";
+import { ArrowBigLeft, ArrowBigLeftDash, ArrowBigRight, LayoutList } from "lucide-react";
 import { InventoryDialog } from "./components/InventoryDialog";
-import { DialogTrigger } from "./components/ui/dialog";
 
 type KioskInventory = {
   id: string;
@@ -41,7 +40,8 @@ const App2 = () => {
     queryKey: ["inventoryList"],
     queryFn: async () => {
       const response = await fetch(
-        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/6a81c35e-ff89-4520-9bb8-b743352fb8d3/kiosks/39c135a2-cdce-47b7-856e-3e5772568712/inventories`,
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d
+/inventories`,
         {
           method: "GET",
           headers: {
@@ -121,7 +121,8 @@ const App2 = () => {
 
     try {
       const response = await fetch(
-        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/6a81c35e-ff89-4520-9bb8-b743352fb8d3/kiosks/39c135a2-cdce-47b7-856e-3e5772568712/inventories`,
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d
+/inventories`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -437,7 +438,7 @@ const App2 = () => {
           }`}
         >
           {isListView && (
-            <div className="container mx-auto p-3 h-[100vh] relative">
+            <div className="container mx-auto p-3 h-[100vh] lg: w-full">
               <div className="rounded-xl border border-black border-solid h-full text-black">
                 <h2 className="text-lg lg:text-3xl text-center w-full mt-10 font-bold">
                   Inventera {data!.facilityName} {data!.kioskName}
@@ -519,7 +520,7 @@ const App2 = () => {
                 </form>
                 <Button
                   type="button"
-                  className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3 `}
+                  className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3 lg:right-10 xl:right-36 `}
                   variant={"outline"}
                   onClick={() => {
                     toggleListView();
