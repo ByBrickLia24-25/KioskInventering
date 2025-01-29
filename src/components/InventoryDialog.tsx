@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "./ui/button";
 import { useState } from "react";
+import { handleVibrate } from "./HandleVibrateFunction";
 
 interface InventoryDialogProps {
   facility: string;
@@ -42,7 +43,7 @@ export function InventoryDialog({
           </p>
         </div>
         <DialogFooter>
-          <Button onClick={handleClose}>Starta inventering</Button>
+          <Button onClick={() => {handleClose(); handleVibrate()}}>Starta inventering</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

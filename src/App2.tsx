@@ -7,6 +7,7 @@ import { toast } from "./hooks/use-toast";
 import { Toaster } from "./components/ui/toaster";
 import { ArrowBigLeft, ArrowBigLeftDash, ArrowBigRight, LayoutList } from "lucide-react";
 import { InventoryDialog } from "./components/InventoryDialog";
+import { handleVibrate } from "./components/HandleVibrateFunction";
 
 type KioskInventory = {
   id: string;
@@ -152,8 +153,6 @@ const App2 = () => {
         className: "bg-green-200",
       });
 
-      // DialogTrigger(<InventoryDialog facility={data!.facilityName} kiosk={data!.kioskName} inventoryDate={updatedInventoryDate}></InventoryDialog>);
-      // återställer alla fält
       setEditedProducts((prevProducts) =>
         prevProducts.map((product) => ({
           ...product,
@@ -298,10 +297,10 @@ const App2 = () => {
           {!isListView && (
             <div className="grid grid-rows-[auto_auto_2fr] h-[80vh] container mx-auto p-4 gap-3">
               <div className="flex flex-col items-center justify-center relative">
-                <form onSubmit={handleSubmit} className="w-fit mx-auto mb-5">
+                <form onSubmit={handleSubmit} className="w-fit mx-auto ">
                   {/* Progress display */}
-                  <div className="mt-auto">
-                    <h3 className="text-2xl font-bold text-center p-2 mb-6">
+                  <div className="">
+                    <h3 className="text-2xl font-bold text-center p-2 mb-3">
                       {currentProduct.productName}
                     </h3>
                     <span
@@ -377,7 +376,7 @@ const App2 = () => {
                   </div>
                   
                     <div className="w-full flex">
-                      <Button type="submit" className={`mt-10 mx-auto bg-orange-400 ${isValid ? "opacity-100": "opacity-0"}`} variant={"secondary"} >
+                      <Button type="submit" className={`mt-10 mx-auto bg-orange-400 ${isValid ? "opacity-100": "opacity-0"}`} variant={"secondary"} onClick={() => {handleVibrate()}} >
                         Skicka in inventering
                       </Button>
                     </div>
@@ -389,7 +388,8 @@ const App2 = () => {
                   type="button"
                   onClick={() => {
                     goToPreviousFieldOrProduct();
-                  }}
+                    handleVibrate();
+                  }}                  
                   className={`place-self-center rounded-xl h-12 ${
                     currentProductIndex === 0 &&
                     activeInput === "pieces" &&
@@ -407,6 +407,7 @@ const App2 = () => {
                   variant={"default"}
                   onClick={() => {
                     toggleListView();
+                    handleVibrate();
                   }}
                 >
                   Byt till listvy
@@ -417,6 +418,7 @@ const App2 = () => {
                   type="button"
                   onClick={() => {
                     goToNextFieldOrProduct();
+                    handleVibrate();
                   }}
                   className={`place-self-center rounded-xl h-12`}
                   variant={"outline"}
@@ -513,6 +515,7 @@ const App2 = () => {
                         !isValid ? "bg-gray-500" : "bg-orange-400"
                       }`}
                       disabled={!isValid}
+                      onClick={() => {handleVibrate();}}
                     >
                       Skicka in inventering
                     </Button>
@@ -524,6 +527,7 @@ const App2 = () => {
                   variant={"outline"}
                   onClick={() => {
                     toggleListView();
+                    handleVibrate();
                   }}
                 >
                   <ArrowBigLeftDash className="w-20 h-20" />
