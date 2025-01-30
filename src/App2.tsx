@@ -5,7 +5,12 @@ import { Button } from "./components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "./hooks/use-toast";
 import { Toaster } from "./components/ui/toaster";
-import { ArrowBigLeft, ArrowBigLeftDash, ArrowBigRight, LayoutList } from "lucide-react";
+import {
+  ArrowBigLeft,
+  ArrowBigLeftDash,
+  ArrowBigRight,
+  LayoutList,
+} from "lucide-react";
 import { InventoryDialog } from "./components/InventoryDialog";
 import { handleVibrate } from "./components/HandleVibrateFunction";
 
@@ -78,28 +83,33 @@ const App2 = () => {
   const calculateTimeSinceLastInventory = (inventoryDate: string) => {
     const currentTimeStamp = new Date();
     const lastInventoryDate = new Date(inventoryDate);
-  
+
     // Beräkna skillnaden i millisekunder
-    const timeDifference = currentTimeStamp.getTime() - lastInventoryDate.getTime();
-  
+    const timeDifference =
+      currentTimeStamp.getTime() - lastInventoryDate.getTime();
+
     // Hantera framtida datum
     if (timeDifference < 0) {
       return { updatedInventoryDate: "Inventeringen ligger i framtiden!" };
     }
-  
+
     // Konvertera millisekunder till dagar, timmar och minuter
     const days = Math.floor(timeDifference / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((timeDifference % (1000 * 60 * 60)) / (1000 * 60));
-  
+    const hours = Math.floor(
+      (timeDifference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    );
+    const minutes = Math.floor(
+      (timeDifference % (1000 * 60 * 60)) / (1000 * 60)
+    );
+
     // Skapa en mänskligt läsbar sträng baserat på tiden
-    const updatedInventoryDate = days > 0
-    ? `${days} dagar, ${hours} timmar och ${minutes} minuter sen`
-    : hours > 0
-      ? `${hours} timmar och ${minutes} minuter sen`
-      : `${minutes} minuter sen`;
-  
-  
+    const updatedInventoryDate =
+      days > 0
+        ? `${days} dagar, ${hours} timmar och ${minutes} minuter sen`
+        : hours > 0
+        ? `${hours} timmar och ${minutes} minuter sen`
+        : `${minutes} minuter sen`;
+
     return { updatedInventoryDate };
   };
 
@@ -108,13 +118,12 @@ const App2 = () => {
     (item) => item.amountPieces != "" && item.amountPackages != ""
   );
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault(); 
+    event.preventDefault();
 
     editedProducts.forEach((product) => {
-    product.amountPieces = Number(product.amountPieces);
-    product.amountPackages = Number(product.amountPackages);
+      product.amountPieces = Number(product.amountPieces);
+      product.amountPackages = Number(product.amountPackages);
     });
-  
 
     if (!isValid) {
       toast({
@@ -164,8 +173,6 @@ const App2 = () => {
           amountPackages: "",
         }))
       );
-
-      
     } catch (error) {
       console.error("Update failed:", error);
       toast({
@@ -178,8 +185,6 @@ const App2 = () => {
 
   const handleKeypadPress = (keyPadKey: KeypadKeys) => {
     if (!editedProducts.length) return;
-
-    const currentProduct = editedProducts[currentProductIndex];
 
     if (keyPadKey === KeypadKeys.CLEAR) {
       updateCurrentProduct(keypadTarget, "");
@@ -278,9 +283,9 @@ const App2 = () => {
   const handleFocus = (field: "pieces" | "packages") => {
     setActiveInput(field);
   };
-  
 
-  const { updatedInventoryDate } = calculateTimeSinceLastInventory(inventoryDate);
+  const { updatedInventoryDate } =
+    calculateTimeSinceLastInventory(inventoryDate);
 
   return (
     <>
@@ -320,81 +325,73 @@ const App2 = () => {
 
                   <div className="flex flex-col gap-6">
                     <div className="flex flex-col mx-auto">
-                      {/* {activeInput === "pieces" && ( */}
-                      <>
-                        <p className="text-xs font-semibold">Antal i styck</p>
+                      <p className="text-xs font-semibold">Antal i styck</p>
 
-                        <Input
-                          value={currentProduct.amountPieces}
-                          onFocus={() => {
-                            handleFocus("pieces");
-                            setKeypadTarget("pieces");
-                          }}
-                          onClick={() => {
-                            handleFocus("pieces");
-                            setKeypadTarget("pieces");
-                          }}
-                          onChange={(e) =>
-                            updateCurrentProduct("pieces", () => e.target.value)
-                          }
-                          readOnly
-                          autoFocus
-                          className={`border-b-2 border-black border-x-0 border-t-0 shadow-none rounded-none focus:outline-none focus-visible:ring-0 focus:border-orange-200 active:border-orange-200 w-[200px] p-2  ${
-                            activeInput === "pieces"
-                              ? "border-orange-400 "
-                              : "border-gray-300"
-                          }`}
-                        />
-                      </>
+                      <Input
+                        value={currentProduct.amountPieces}
+                        onFocus={() => {
+                          handleFocus("pieces");
+                          setKeypadTarget("pieces");
+                        }}
+                        onClick={() => {
+                          handleFocus("pieces");
+                          setKeypadTarget("pieces");
+                        }}
+                        onChange={(e) =>
+                          updateCurrentProduct("pieces", () => e.target.value)
+                        }
+                        readOnly
+                        autoFocus
+                        className={`border-b-2 border-black border-x-0 border-t-0 shadow-none rounded-none focus:outline-none focus-visible:ring-0 focus:border-orange-200 active:border-orange-200 w-[200px] p-2  ${
+                          activeInput === "pieces"
+                            ? "border-orange-400 "
+                            : "border-gray-300"
+                        }`}
+                      />
                     </div>
                     <div className="flex flex-col mx-auto">
-                      {/* {activeInput === "packages" && ( */}
-                      <>
-                        <p className="text-xs font-semibold">
-                          Antal i obrutna förpackningar
-                        </p>
+                      <p className="text-xs font-semibold">
+                        Antal i obrutna förpackningar
+                      </p>
 
-                        <Input
-                          value={currentProduct.amountPackages}
-                          onFocus={() => {
-                            handleFocus("packages");
-                            setKeypadTarget("packages");
-                          }}
-                          onClick={() => {
-                            handleFocus("packages");
-                            setKeypadTarget("packages");
-                          }}
-                          onChange={(e) =>
-                            updateCurrentProduct(
-                              "packages",
-                              () => e.target.value
-                            )
-                          }
-                          readOnly
-                          className={`border-b-2 border-black border-x-0 border-t-0 shadow-none rounded-none focus:outline-none focus-visible:ring-0 focus:border-orange-200 active:border-orange-200 w-[200px] p-2   ${
-                            activeInput === "packages"
-                              ? "border-orange-400 "
-                              : "border-gray-300"
-                          }`}
-                        />
-                      </>
+                      <Input
+                        value={currentProduct.amountPackages}
+                        onFocus={() => {
+                          handleFocus("packages");
+                          setKeypadTarget("packages");
+                        }}
+                        onClick={() => {
+                          handleFocus("packages");
+                          setKeypadTarget("packages");
+                        }}
+                        onChange={(e) =>
+                          updateCurrentProduct("packages", () => e.target.value)
+                        }
+                        readOnly
+                        className={`border-b-2 border-black border-x-0 border-t-0 shadow-none rounded-none focus:outline-none focus-visible:ring-0 focus:border-orange-200 active:border-orange-200 w-[200px] p-2   ${
+                          activeInput === "packages"
+                            ? "border-orange-400 "
+                            : "border-gray-300"
+                        }`}
+                      />
                     </div>
                   </div>
-                  
-                    <div className="w-full flex">
+
+                  <div className="w-full flex">
                     <Button
-                      type="submit" 
+                      type="submit"
                       variant={"secondary"}
                       className={`mt-5 mx-auto ${
                         !isValid ? "bg-gray-500" : "bg-orange-400"
                       }`}
                       disabled={!isValid}
-                      onClick={() => {handleVibrate();}}
+                      onClick={() => {
+                        handleVibrate();
+                      }}
                     >
                       Skicka in inventering
-                    </Button>               
-                    </div>
-                
+                    </Button>
+                  </div>
                 </form>
               </div>
               <div className="flex justify-between mx-5">
@@ -403,7 +400,7 @@ const App2 = () => {
                   onClick={() => {
                     goToPreviousFieldOrProduct();
                     handleVibrate();
-                  }}                  
+                  }}
                   className={`place-self-center rounded-xl h-12 ${
                     currentProductIndex === 0 &&
                     activeInput === "pieces" &&
@@ -467,7 +464,7 @@ const App2 = () => {
                     {updatedInventoryDate}
                   </h3>
                 </div>
-            
+
                 <form onSubmit={handleSubmit} className="">
                   {editedProducts?.map((product, index) => (
                     <div
@@ -525,19 +522,21 @@ const App2 = () => {
                   ))}
                   <div className="mx-auto w-fit">
                     <Button
-                      type="submit" 
+                      type="submit"
                       variant={"secondary"}
                       className={`mt-5 mx-auto ${
                         !isValid ? "bg-gray-500" : "bg-orange-400"
                       }`}
                       disabled={!isValid}
-                      onClick={() => {handleVibrate();}}
+                      onClick={() => {
+                        handleVibrate();
+                      }}
                     >
                       Skicka in inventering
                     </Button>
                   </div>
                 </form>
-         
+
                 <Button
                   type="button"
                   className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3 lg:right-10 xl:right-36 `}
@@ -559,5 +558,3 @@ const App2 = () => {
 };
 
 export default App2;
-
-
