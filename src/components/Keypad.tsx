@@ -42,6 +42,7 @@ const Keypad: React.FC<IKeypadProps> = ({ onKeyPressed }) => {
               key={keyPadKey}
               keySize={KEY_SIZE}
               onKeyPressed={onKeyPressed}
+
             />
           ))}
         </div>
