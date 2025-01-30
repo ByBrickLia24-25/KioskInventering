@@ -15,6 +15,7 @@ type KioskInventory = {
   facilityName: string;
   inventoryDate: string;
   products: Product[];
+  firstInventoryMade: boolean;
 };
 
 interface Product {
@@ -41,8 +42,7 @@ const App2 = () => {
     queryKey: ["inventoryList"],
     queryFn: async () => {
       const response = await fetch(
-        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d
-/inventories`,
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/06412156-c36f-4cc0-b792-87f5510c8bd4/kiosks/eca1493f-45d3-4c88-8c8c-d6433bba8657/inventories`,
         {
           method: "GET",
           headers: {
@@ -107,9 +107,14 @@ const App2 = () => {
   const isValid = editedProducts?.every(
     (item) => item.amountPieces != "" && item.amountPackages != ""
   );
-
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault(); // Förhindra formulärets standardomladdning
+    event.preventDefault(); 
+
+    editedProducts.forEach((product) => {
+    product.amountPieces = Number(product.amountPieces);
+    product.amountPackages = Number(product.amountPackages);
+    });
+  
 
     if (!isValid) {
       toast({
@@ -122,8 +127,7 @@ const App2 = () => {
 
     try {
       const response = await fetch(
-        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/60e5a8a8-745e-4109-b034-1453a586f7c1/kiosks/bae9fd68-90d4-4a5a-b1af-b3124b49b31d
-/inventories`,
+        `https://zxilxqtzdb.execute-api.eu-north-1.amazonaws.com/prod/facilities/0243e69a-88af-47af-b6ab-cc9300b9e680/06412156-c36f-4cc0-b792-87f5510c8bd4/kiosks/eca1493f-45d3-4c88-8c8c-d6433bba8657/inventories`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -274,6 +278,7 @@ const App2 = () => {
   const handleFocus = (field: "pieces" | "packages") => {
     setActiveInput(field);
   };
+  
 
   const { updatedInventoryDate } = calculateTimeSinceLastInventory(inventoryDate);
 
@@ -283,6 +288,7 @@ const App2 = () => {
         facility={data!.facilityName}
         kiosk={data!.kioskName}
         inventoryDate={updatedInventoryDate}
+        firstInventoryMade={data!.firstInventoryMade}
       />
 
       <Toaster />
@@ -300,11 +306,11 @@ const App2 = () => {
                 <form onSubmit={handleSubmit} className="w-fit mx-auto ">
                   {/* Progress display */}
                   <div className="">
-                    <h3 className="text-2xl font-bold text-center p-2 mb-3">
+                    <h3 className="min-[376px]:text-2xl text-xl font-bold text-center p-2 mb-3">
                       {currentProduct.productName}
                     </h3>
                     <span
-                      className={`text-right text-xs absolute top-7 right-0 ${
+                      className={`text-right text-xs absolute top-12 right-0 ${
                         isValid ? "bg-green-200" : "bg-neutral-200"
                       } rounded-full p-2`}
                     >
@@ -376,9 +382,17 @@ const App2 = () => {
                   </div>
                   
                     <div className="w-full flex">
-                      <Button type="submit" className={`mt-10 mx-auto bg-orange-400 ${isValid ? "opacity-100": "opacity-0"}`} variant={"secondary"} onClick={() => {handleVibrate()}} >
-                        Skicka in inventering
-                      </Button>
+                    <Button
+                      type="submit" 
+                      variant={"secondary"}
+                      className={`mt-5 mx-auto ${
+                        !isValid ? "bg-gray-500" : "bg-orange-400"
+                      }`}
+                      disabled={!isValid}
+                      onClick={() => {handleVibrate();}}
+                    >
+                      Skicka in inventering
+                    </Button>               
                     </div>
                 
                 </form>
@@ -453,7 +467,7 @@ const App2 = () => {
                     {updatedInventoryDate}
                   </h3>
                 </div>
-
+            
                 <form onSubmit={handleSubmit} className="">
                   {editedProducts?.map((product, index) => (
                     <div
@@ -474,6 +488,7 @@ const App2 = () => {
                           </label>
                           <Input
                             type="number"
+                            name="amountPieces"
                             value={product.amountPieces}
                             onChange={(e) =>
                               setEditedProducts((prev) =>
@@ -492,6 +507,7 @@ const App2 = () => {
                           </label>
                           <Input
                             type="number"
+                            name="amountPackages"
                             value={product.amountPackages}
                             onChange={(e) =>
                               setEditedProducts((prev) =>
@@ -521,6 +537,7 @@ const App2 = () => {
                     </Button>
                   </div>
                 </form>
+         
                 <Button
                   type="button"
                   className={`w-16 h-16 shadow border m-1 p-1 rounded-xl fixed right-3 bottom-3 lg:right-10 xl:right-36 `}
@@ -542,3 +559,5 @@ const App2 = () => {
 };
 
 export default App2;
+
+

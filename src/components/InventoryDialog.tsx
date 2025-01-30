@@ -12,12 +12,14 @@ interface InventoryDialogProps {
   facility: string;
   kiosk: string;
   inventoryDate: string; // Eller Date om du använder datumobjekt
+  firstInventoryMade: boolean;
 }
 
 export function InventoryDialog({
   facility,
   kiosk,
   inventoryDate,
+  firstInventoryMade,
 }: InventoryDialogProps) {
   const [isOpen, setIsOpen] = useState(true); // Hanterar dialogens öppningsstatus
 
@@ -30,20 +32,28 @@ export function InventoryDialog({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent>
         <DialogHeader>
-          <h2>Kiosk Inventering</h2>
+          <h2>Inventera kiosk produkter</h2>
         </DialogHeader>
         <div>
           <h2 className="text-center w-full mb-1 h-fit">
             {facility} {kiosk}
           </h2>
 
-          <p className="text-center text-xs">
-            Senast inventering:{" "}
-           {inventoryDate}
-          </p>
+          {firstInventoryMade ? (
+            <p className="text-center text-xs">
+              Senast inventering: {inventoryDate}
+            </p>
+          ) : (<p className="text-center text-xs">Starta första inventeringen</p>)}
         </div>
         <DialogFooter>
-          <Button onClick={() => {handleClose(); handleVibrate()}}>Starta inventering</Button>
+          <Button
+            onClick={() => {
+              handleClose();
+              handleVibrate();
+            }}
+          >
+            Starta inventering
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
